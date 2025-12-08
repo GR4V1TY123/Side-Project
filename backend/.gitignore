@@ -1,5 +1,10 @@
-node_modules
-# Keep environment variables out of version control
+# ignore envs everywhere
+*.env
 .env
+backend/.env
 
-/generated/prisma
+# ignore prisma generated folder
+generated/prisma/
+
+# ignore node modules everywhere
+node_modules/
