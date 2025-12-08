@@ -8,19 +8,19 @@ export default function RideCard({ ride }: any) {
         <div>
             <Card className="w-full max-w-xs shadow-md">
                 <CardHeader>
-                    <CardTitle>{ride.source.address.road} → {ride.destination.address.road}</CardTitle>
+                    <CardTitle>{ride.source.address.road} → <br />{ride.destination.address.road}</CardTitle>
                     <CardDescription>
-                        {ride.distance} km • ₹{ride.fare} • Seats: {ride.seats}
+                        <p className='font-bold text-green-700 text-lg '>
+                            ₹ {ride.fare}
+                        </p>
+                        {ride.distance} km • Seats: {ride.seats}
                     </CardDescription>
                 </CardHeader>
-
                 <CardContent>
-                    <p>Time: {new Date(ride.time).toLocaleString()}</p>
-                    <p>Status: {ride.status}</p>
+                    <span><span className='font-bold'>Time:</span> {new Date(ride.created_at).toLocaleTimeString()}</span>
                 </CardContent>
 
                 <CardFooter className="flex justify-between">
-                    <Button variant="outline">Join</Button>
                     <RideDetails ride={ride}/>
                 </CardFooter>
             </Card>

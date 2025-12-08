@@ -1,5 +1,4 @@
-
-import CreateRides from './components/CreateRides';
+import ProtectedRoutes from './components/ProtectedRoutes';
 import Bookings from './pages/Bookings';
 import Home from './pages/Home';
 import Login from './pages/Login'
@@ -21,18 +20,30 @@ export const appRoutes = [
     },
     {
         path: "/rides",
-        element: <Rides />
+        element: (
+            < ProtectedRoutes >
+                <Rides />
+            </ProtectedRoutes >
+        )
     },
     {
         path: "/profile",
-        element: <Rides />
+        element: (
+            < ProtectedRoutes >
+                <Rides />
+            </ProtectedRoutes >
+        )
     },
     {
         path: "/bookings",
-        element: <Bookings />
+        element: (
+            < ProtectedRoutes >
+                <Bookings />
+            </ProtectedRoutes >
+        )
     },
     {
-        path: "/rides/:id", 
+        path: "/rides/:id",
         element: <Rides />
     },
 ]

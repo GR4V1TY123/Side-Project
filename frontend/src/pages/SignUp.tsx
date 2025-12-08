@@ -30,7 +30,6 @@ function SignUp() {
                 onChange={(e) => setPassword(e.target.value)}
             />
             <Button onClick={signUp}>Sign Up</Button>
-            {/* <Button onClick={signIn}>Log In</Button> */}
         </div>
     )
 }

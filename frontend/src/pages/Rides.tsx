@@ -8,6 +8,7 @@ import UserLocation from '../hooks/UserLocation';
 import { useEffect } from 'react';
 import { useRidesStore } from '../store/useRidesStore';
 import { supabase } from '../supabase/supabaseClient';
+import { useQuery } from '@tanstack/react-query';
 
 export default function Rides() {
   const { lat, lng, address } = useTrackLocation();
@@ -33,7 +34,7 @@ export default function Rides() {
     iconUrl: 'auto_map_icon.png',
     iconSize: [50, 50], // size of the icon
     popupAnchor: [1, -34], // point from which the popup should open relative to the iconAnchor
-    iconAnchor:   [25, 50], // point of the icon which will correspond to marker's location
+    iconAnchor: [25, 50], // point of the icon which will correspond to marker's location
   });
 
   return (
@@ -65,13 +66,13 @@ export default function Rides() {
             {
               rides.length > 0 && (
                 rides?.map((ride, i) => (
-                  <Marker 
-                  position={[ride.source_lat, ride.source_lng]}
-                  key={ride.id}
-                  icon={mapIcon}>
+                  <Marker
+                    position={[ride.source_lat, ride.source_lng]}
+                    key={ride.id}
+                    icon={mapIcon}>
                     <Popup>
-                      <b>Ride available</b>
-                      <p>Fare: {ride.fare}</p>
+                      <b>Ride available</b><br />
+                      <b>Fare: {ride.fare}</b><br />
                       <a href="">Click to view</a>
                     </Popup>
                   </Marker>

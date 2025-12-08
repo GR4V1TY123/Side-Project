@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { getLocationName } from "../hooks/GetLocationName";
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 function CreateRides() {
   const { addRide } = useRidesStore();
@@ -40,7 +41,7 @@ function CreateRides() {
     fare: 26,
     source: "Mumbai",
     destination: "Mumbai",
-    distance: 2,
+    distance: 0,
     status: "active",
     passengers: 2,
     host_id: 178,
@@ -51,6 +52,7 @@ function CreateRides() {
     route: route
   });
 
+  // RICKSHAW FARE FORMULA 
   useEffect(() => {
     if (distanceKm > 1.50) {
       setFormData((prev) => ({
@@ -91,184 +93,185 @@ function CreateRides() {
     const finalData = {
       ...formData, source: srcAddress, destination: destAddress
     }
-  
-  const { data, error } = await supabase.from("Rides").insert([finalData]).select();
-  if (error) console.error(error);
-  else {
-    const newRide = data[0];
-    addRide(newRide);
-    console.log("Ride Created:", newRide);
-  }
-};
 
-function MapClickHandler() {
-  useMapEvents({
-    click(e) {
-      if (points.length < 2) {
-        const newPoints = [...points, { lat: e.latlng.lat, lng: e.latlng.lng }];
-        setPoints(newPoints);
+    const { data, error } = await supabase.from("Rides").insert([finalData]).select();
+    if (error) console.error(error);
+    else {
+      const newRide = data[0];
+      addRide(newRide);
+      console.log("Ride Created:", newRide);
+    }
+  };
 
-        if (newPoints.length === 1) {
+  function MapClickHandler() {
+    useMapEvents({
+      click(e) {
+        if (points.length < 2) {
+          const newPoints = [...points, { lat: e.latlng.lat, lng: e.latlng.lng }];
+          setPoints(newPoints);
+
+          if (newPoints.length === 1) {
+            setFormData((prev) => ({
+              ...prev,
+              source_lat: newPoints[0].lat,
+              source_lng: newPoints[0].lng,
+            }));
+          } else if (newPoints.length === 2) {
+            setFormData((prev) => ({
+              ...prev,
+              dest_lat: newPoints[1].lat,
+              dest_lng: newPoints[1].lng,
+            }));
+            getRoute(newPoints[0], newPoints[1]);
+          }
+        } else {
+          setPoints([{ lat: e.latlng.lat, lng: e.latlng.lng }]);
           setFormData((prev) => ({
             ...prev,
-            source_lat: newPoints[0].lat,
-            source_lng: newPoints[0].lng,
+            source_lat: e.latlng.lat,
+            source_lng: e.latlng.lng,
+            dest_lat: 0,
+            dest_lng: 0,
           }));
-        } else if (newPoints.length === 2) {
-          setFormData((prev) => ({
-            ...prev,
-            dest_lat: newPoints[1].lat,
-            dest_lng: newPoints[1].lng,
-          }));
-          getRoute(newPoints[0], newPoints[1]);
         }
-      } else {
-        setPoints([{ lat: e.latlng.lat, lng: e.latlng.lng }]);
-        setFormData((prev) => ({
-          ...prev,
-          source_lat: e.latlng.lat,
-          source_lng: e.latlng.lng,
-          dest_lat: 0,
-          dest_lng: 0,
-        }));
-      }
-    },
-  });
-  return null;
-}
+      },
+    });
+    return null;
+  }
 
-return (
-  <div className="flex justify-center  h-full w-full items-center bg-gray-50 px-6">
-    <div className="flex flex-col bg-gray-50 rounded-2xl shadow-md border border-gray-200 mt-6">
-      <div className="p-6 ">
-        <h1 className="text-2xl font-bold text-gray-800 mb-4 text-center">
-          Begin your ride
-        </h1>
-        <p className="text-gray-600 text-center mb-6">
-          <span className="font-bold">Your Address: </span> {address}
-        </p>
+  return (
+    <div className="flex justify-center  h-full w-full items-center px-6">
+      <div className="flex flex-col rounded-2xl shadow-md border border-gray-200 mt-6">
+        <div className="p-6 ">
+          <h1 className="text-2xl font-bold text-gray-800 mb-4 text-center">
+            Begin your ride
+          </h1>
+          <p className="text-gray-600 text-center mb-6">
+            <span className="font-bold">Your Address: </span> {address}
+          </p>
+        </div>
+        <Dialog>
+          <DialogTrigger asChild className="m-6">
+            <Button variant="default" className="bg-green-600 hover:bg-green-700 shadow-xl">
+              + Create Ride
+            </Button>
+          </DialogTrigger>
+
+          <DialogContent className="lg:min-w-6xl h-auto w-full p-8 bg-white shadow-xl">
+            <DialogHeader className="mb-6 text-center">
+              <DialogTitle className="text-3xl font-bold text-gray-900 tracking-tight">
+                Create a New Ride
+              </DialogTitle>
+              <DialogDescription className="mt-2 text-base text-gray-600 leading-relaxed">
+                Enter your ride details and pick <span className="font-medium text-gray-800">two points on the map </span>
+                one for <span className="text-green-600 font-medium">source</span> and one for
+                <span className="text-red-600 font-medium"> destination</span>.
+              </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="max-h-[80vh] pr-3">
+              <div className="flex flex-col md:flex-row gap-6">
+                {/* Left: Form Section */}
+                <form
+                  onSubmit={handleSubmit}
+                  className="grid grid-cols-2 gap-4 md:w-1/2 bg-gray-50 rounded-xl p-5 border border-gray-200 shadow-sm"
+                >
+                  <div>
+                    <label className="block text-gray-700 font-medium mb-1">Seats you need</label>
+                    <Select onValueChange={handleSeatChange} defaultValue={formData.seats.toString()}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select seats" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1</SelectItem>
+                        <SelectItem value="2">2</SelectItem>
+                        <SelectItem value="3">3</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 font-medium mb-1">Time</label>
+                    <Input name="time" value={formData.time} onChange={handleChange} />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 font-medium mb-1">Fare (₹)</label>
+                    <Input
+                      name="fare"
+                      type="number"
+                      value={formData.fare}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 font-medium mb-1">Passengers needed</label>
+                    <Input
+                      name="passengers"
+                      type="number"
+                      value={formData.passengers}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+
+
+                  <div>
+                    <label className="block text-gray-700 font-medium mb-1">Host ID</label>
+                    <Input
+                      name="host_id"
+                      type="number"
+                      value={formData.host_id}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  <div className="col-span-2 flex gap-3 mt-4">
+                    <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700 text-white">
+                      Add Ride
+                    </Button>
+                    <DialogClose asChild>
+                      <Button variant="outline" className="flex-1">
+                        Cancel
+                      </Button>
+                    </DialogClose>
+                  </div>
+                </form>
+
+                {/* Right: Map Section */}
+                <div className="flex flex-col lg:w-1/2 w-full h-96 rounded-xl overflow-hidden border shadow-md">
+                  <MapContainer
+                    center={[lat, lng]}
+                    zoom={13}
+                    style={{ height: "100%", width: "100%" }}
+                  >
+                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                    <MapClickHandler />
+                    {route.length > 0 && (
+                      <Polyline positions={route} color="blue" weight={4} opacity={0.7} />
+                    )}
+                    {points.map((point, idx) => (
+                      <Marker key={idx} position={[point.lat, point.lng]}>
+                        <Popup>
+                          {idx === 0 ? "🟢 Source" : "🔴 Destination"} <br />
+                          Lat: {point.lat.toFixed(5)} <br />
+                          Lng: {point.lng.toFixed(5)}
+                        </Popup>
+                      </Marker>
+                    ))}
+                  </MapContainer>
+                  <div className="flex justify-around text-gray-600 text-md">
+                    <span>Distance: {formData.distance} km</span>
+                  </div>
+                </div>
+              </div>
+            </ScrollArea>
+          </DialogContent>
+        </Dialog>
       </div>
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button variant="default" className="bg-green-600 hover:bg-green-700">
-            + Create Ride
-          </Button>
-        </DialogTrigger>
 
-        <DialogContent className="min-w-6xl w-full p-8 bg-white shadow-xl">
-          <DialogHeader className="mb-6 text-center">
-            <DialogTitle className="text-3xl font-bold text-gray-900 tracking-tight">
-              Create a New Ride
-            </DialogTitle>
-            <DialogDescription className="mt-2 text-base text-gray-600 leading-relaxed">
-              Enter your ride details and pick <span className="font-medium text-gray-800">two points on the map </span>
-              one for <span className="text-green-600 font-medium">source</span> and one for
-              <span className="text-red-600 font-medium"> destination</span>.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="flex flex-col md:flex-row gap-6">
-            {/* Left: Form Section */}
-            <form
-              onSubmit={handleSubmit}
-              className="grid grid-cols-2 gap-4 md:w-1/2 bg-gray-50 rounded-xl p-5 border border-gray-200 shadow-sm"
-            >
-              <div>
-                <label className="block text-gray-700 font-medium mb-1">Seats you need</label>
-                <Select onValueChange={handleSeatChange} defaultValue={formData.seats.toString()}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select seats" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1</SelectItem>
-                    <SelectItem value="2">2</SelectItem>
-                    <SelectItem value="3">3</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="block text-gray-700 font-medium mb-1">Time</label>
-                <Input name="time" value={formData.time} onChange={handleChange} />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 font-medium mb-1">Fare (₹)</label>
-                <Input
-                  name="fare"
-                  type="number"
-                  value={formData.fare}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 font-medium mb-1">Passengers needed</label>
-                <Input
-                  name="passengers"
-                  type="number"
-                  value={formData.passengers}
-                  onChange={handleChange}
-                />
-              </div>
-
-
-
-              <div>
-                <label className="block text-gray-700 font-medium mb-1">Host ID</label>
-                <Input
-                  name="host_id"
-                  type="number"
-                  value={formData.host_id}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="col-span-2 flex gap-3 mt-4">
-                <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700 text-white">
-                  Add Ride
-                </Button>
-                <DialogClose asChild>
-                  <Button variant="outline" className="flex-1">
-                    Cancel
-                  </Button>
-                </DialogClose>
-              </div>
-            </form>
-
-            {/* Right: Map Section */}
-            <div className="flex flex-col md:w-1/2 w-full h-96 rounded-xl overflow-hidden border shadow-md">
-              <MapContainer
-                center={[lat, lng]}
-                zoom={13}
-                style={{ height: "100%", width: "100%" }}
-              >
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                <MapClickHandler />
-                {route.length > 0 && (
-                  <Polyline positions={route} color="blue" weight={4} opacity={0.7} />
-                )}
-                {points.map((point, idx) => (
-                  <Marker key={idx} position={[point.lat, point.lng]}>
-                    <Popup>
-                      {idx === 0 ? "🟢 Source" : "🔴 Destination"} <br />
-                      Lat: {point.lat.toFixed(5)} <br />
-                      Lng: {point.lng.toFixed(5)}
-                    </Popup>
-                  </Marker>
-                ))}
-              </MapContainer>
-              <div className="flex justify-around text-gray-600 text-md">
-                <span>Distance: {formData.distance} km</span>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
-
-  </div>
-);
+  );
 }
 
 export default CreateRides;

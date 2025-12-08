@@ -1,8 +1,11 @@
-import React from "react";
 import { Button } from "@/components/ui/button";
-import { Menu, Car, User, CircleUserRound } from "lucide-react";
+import { Menu, Car, CircleUserRound } from "lucide-react";
+import { useAuthStore } from "../store/useAuthStore";
 
 function Navbar() {
+
+  const isAuthenticated = useAuthStore();
+
   return (
     <nav className="w-full bg-black text-white shadow-md">
       <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-16">
@@ -22,13 +25,14 @@ function Navbar() {
         </div>
 
         {/* Right: Buttons */}
-        <div className="flex items-center space-x-4">
-          <Button variant="outline" className="bg-yellow-300 text-black border-gray-500 hover:bg-yellow-600 hover:text-black hover:cursor-pointer">
-            <a href="/signup">Log In</a>
-          </Button>
-          <a href="/profile" className="hover:text-yellow-400 transition-colors"><CircleUserRound /></a>
-          
-        </div>
+        {!isAuthenticated &&
+          <div className="flex items-center space-x-4">
+            <Button variant="outline" className="bg-yellow-300 text-black border-gray-500 hover:bg-yellow-600 hover:text-black hover:cursor-pointer">
+              <a href="/signup">Log In</a>
+            </Button>
+            <a href="/profile" className="hover:text-yellow-400 transition-colors"><CircleUserRound /></a>
+          </div>
+        }
       </div>
     </nav>
   );

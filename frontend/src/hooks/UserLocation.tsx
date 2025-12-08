@@ -4,7 +4,7 @@ import { useTrackLocation } from "../store/useTrackLocation";
 import { getLocationName } from "./GetLocationName";
 
 export default function useUserLocation() {
-  const { lat, lng, setLat, setLng, setAddress, setSmallAddress } = useTrackLocation();
+  const {setLat, setLng, setAddress, setSmallAddress, hasFetched, markFetched } = useTrackLocation();
   
   const { coords, isGeolocationAvailable, isGeolocationEnabled } =
     useGeolocated({
@@ -14,6 +14,7 @@ export default function useUserLocation() {
     });
 
   useEffect(() => {
+    if(hasFetched) return;
     if (coords) {
       const { latitude, longitude } = coords;
       setLat(latitude);
@@ -32,9 +33,10 @@ export default function useUserLocation() {
           city: specifics.city || "NA"
         }
         setSmallAddress(smallAddress);
+        markFetched();
       })();
     }
-  }, [coords]);
+  }, [coords, hasFetched]);
 
   if (!isGeolocationAvailable)
     return <p>Geolocation not supported on this device.</p>;
