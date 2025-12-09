@@ -5,10 +5,36 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+model Rides {
+  ride_id     Int     @id @default(autoincrement())
+  created_at  DateTime   @default(now()) @db.Timestamptz
+  seats       Int        @default(0) @db.SmallInt
+  fare        Float      @default(0) @db.Real
+  source      Json
+  destination Json
+  distance    Float      @db.Real
+  status      String     @default("Inactive")
+  passengers  Int
+  host_id     Int
+  source_lat  Float?     @db.Real
+  dest_lat    Float?     @db.Real
+  source_lng  Float?     @db.Real
+  dest_lng    Float?     @db.Real
+  route       Json?
+}
+
+model User {
+  user_id Int @id @default(autoincrement())
+  created_at DateTime @default(now()) @db.Timestamptz()
+  email String @unique
+  name String
+  password String
 }
