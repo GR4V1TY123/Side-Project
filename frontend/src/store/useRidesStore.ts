@@ -8,7 +8,6 @@ interface Ride {
   seats: number;
   time: string;
   status: string;
-  passengers: number;
   hostId: string;
   distance: string;
 }

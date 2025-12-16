@@ -5,26 +5,35 @@ import RideCard from '../components/RideCard';
 import CreateRides from '../components/CreateRides';
 import { useTrackLocation } from '../store/useTrackLocation';
 import UserLocation from '../hooks/UserLocation';
-import { useEffect } from 'react';
-import { useRidesStore } from '../store/useRidesStore';
-import { supabase } from '../supabase/supabaseClient';
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useRidesStore } from '@/store/useRidesStore';
+import { Spinner } from '@/components/ui/spinner';
 
 export default function Rides() {
-  const { lat, lng, address } = useTrackLocation();
+  const { lat, lng, address, collegeAddress, collegeLat, collegeLon } = useTrackLocation();
+
+  const [errorText, setErrorText] = useState("")
   const { rides, setRides } = useRidesStore()
 
-  useEffect(() => {
-    async function getRides() {
-      let { data: Rides, error } = await supabase
-        .from('Rides')
-        .select('*')
-      console.log(Rides, error);
-      setRides(Rides)
-    }
-    getRides()
-  }, [])
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['rides'],
+    queryFn: async () => {
+      const data = await fetch(`http://localhost:3000/api/v1/rides`)
+      const rides = await data.json();
+      console.log(rides);
+      if (!data.ok) {
+        setErrorText(rides?.message)
+        return null;
+      }
+      setRides(rides)
+      return rides
+    },
+    retry: 2,
+    staleTime: 900000
+  })
 
+  if (error && errorText.length === 0) setErrorText(error?.message)
   // Don’t render map until location is available
   if (!lat || !lng) {
     return <p>Getting your location...</p>;
@@ -39,40 +48,44 @@ export default function Rides() {
 
   return (
     <div className='p-5'>
-      {/* This component updates lat/lng + address automatically */}
-      <UserLocation />
-
+      {/*updates lat/lng + address automatically */}
+      {/* <UserLocation /> */}
 
 
       <div className='grid grid-cols-2 items-center'>
+        {/* Add ride component */}
         <div>
           <CreateRides />
         </div>
+
+        {/* Map component */}
         <div>
           <MapContainer
-            center={[lat, lng]}
+            center={[Number(collegeLat), Number(collegeLon)]}
             zoom={13}
             style={{ height: '400px', width: '100%', zIndex: 0, borderRadius: '20px' }}
           >
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-            <Marker position={[lat, lng]}>
+            <Marker position={[Number(collegeLat), Number(collegeLon)]}>
               <Popup>
-                📍 <b>Your Location</b>
+                📍 <b>College Location</b>
                 <br />
-                {address || "Fetching address..."}
+                {collegeAddress || "Fetching address..."}
               </Popup>
             </Marker>
+
+            {/* Map markers for rides */}
             {
-              rides.length > 0 && (
-                rides?.map((ride, i) => (
+              rides && rides.length > 0 && (
+                rides?.map((ride: any) => (
                   <Marker
-                    position={[ride.source_lat, ride.source_lng]}
+                    position={[ride.dest_lat, ride.dest_lng]}
                     key={ride.id}
                     icon={mapIcon}>
                     <Popup>
-                      <b>Ride available</b><br />
-                      <b>Fare: {ride.fare}</b><br />
+                      <b>{ride.destination.display_name?.split(',')[2]}</b><br />
+                      <b>Fare: {ride.fare} Rs</b><br />
                       <a href="">Click to view</a>
                     </Popup>
                   </Marker>
@@ -83,16 +96,22 @@ export default function Rides() {
         </div>
       </div>
 
+      {/* Rides List */}
       {
-        Array.isArray(rides) && rides.length > 0 && (<div>
-          <div className="grid grid-cols-4 gap-4 p-8">
-            {rides?.map((ride, i) => (
-              <div key={i}>
-                <RideCard ride={ride} />
-              </div>
-            ))}
-          </div>
+        isLoading ? (<div className='flex items-center justify-center'>
+          <Spinner />
         </div>)
+          :
+          (rides && rides.length > 0) ? (<div>
+            <div className="md:grid grid-cols-4 gap-4 p-8 items-center justify-center">
+              {rides?.map((ride: any, i: any) => (
+                <div key={i}>
+                  <RideCard ride={ride} />
+                </div>
+              ))}
+            </div>
+          </div>) :
+            (errorText) ? <span>{errorText}</span> : <span>No rides found</span>
       }
 
     </div >

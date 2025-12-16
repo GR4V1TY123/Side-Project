@@ -10,8 +10,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { supabase } from "../supabase/supabaseClient";
-import { useRidesStore } from "../store/useRidesStore";
 import { useTrackLocation } from "../store/useTrackLocation";
 import { MapContainer, Marker, Polyline, Popup, TileLayer, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -24,116 +22,92 @@ import {
 } from "./ui/select";
 import { getLocationName } from "../hooks/GetLocationName";
 import { ScrollArea } from "@/components/ui/scroll-area"
+import addRideHook from "@/hooks/addRideHook";
+import { Spinner } from "./ui/spinner";
 
 function CreateRides() {
-  const { addRide } = useRidesStore();
-  const { lat, lng, address } = useTrackLocation();
-  const [points, setPoints] = useState<{ lat: number; lng: number }[]>([]);
-  const [route, setRoute] = useState([]);
-  const [distanceKm, setDistanceKm] = useState(0);
-
+  const { lat, lng, address, collegeAddress, collegeLat, collegeLon } = useTrackLocation();
+  const [points, setPoints] = useState<{ lat: number; lng: number }>() || null;
+  const [open, setOpen] = useState(false); //for dialog closing
+  const [loading, setLoading] = useState(false)
+  const collegeAddres = "TSEC College, 37th Road, Linking Road Shopping area, Bandra West, Zone 3, Mumbai, Mumbai Suburban, Maharashtra, 400050, India"
   console.log(address);
 
-
-  const [formData, setFormData] = useState({
+  const initialForm = {
     seats: 1,
-    time: 200,
     fare: 26,
-    source: "Mumbai",
-    destination: "Mumbai",
+    destination: null,
     distance: 0,
-    status: "active",
-    passengers: 2,
-    host_id: 178,
-    source_lat: lat,
-    source_lng: lng,
+    status: "ACTIVE",
     dest_lat: 0,
     dest_lng: 0,
-    route: route
-  });
+    route: []
+  }
+  const [formData, setFormData] = useState(initialForm);
+
+  const { addRideMutation } = addRideHook();
 
   // RICKSHAW FARE FORMULA 
   useEffect(() => {
-    if (distanceKm > 1.50) {
+    if (formData.distance > 1.50) {
       setFormData((prev) => ({
         ...prev,
-        fare: Math.round((distanceKm - 1.5) * 17.14) + 26
+        fare: Math.round((formData.distance - 1.5) * 17.14) + 26
       }))
     }
-  }, [distanceKm])
+  }, [formData.distance])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSeatChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, seats: Number(value) }));
-  };
-
-  async function getRoute(start, end) {
-    const url = `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    if (data.routes && data.routes.length > 0) {
-      const coordinates = data.routes[0].geometry.coordinates.map((coord) => [coord[1], coord[0]]);
-      setRoute(coordinates);
-
-      const dist = data.routes[0].distance / 1000;
-      setDistanceKm(dist.toFixed(2));
-      setFormData((prev) => ({ ...prev, distance: dist.toFixed(2), route: coordinates }));
+  async function getRoute(dest: any) {
+    try {
+      const response = await fetch(`http://localhost:3000/thirdParty/api/v1/route`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          elat: dest.lat,
+          elng: dest.lng,
+          slat: collegeLat,
+          slng: collegeLon
+        })
+      })
+      if (!response.ok) return null;
+      const data = await response.json();
+      setFormData((p) => ({ ...p, route: data.route, distance: data.distance }))
+    } catch (error) {
+      console.log(error);
     }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const srcAddress = await getLocationName(formData.source_lat, formData.source_lng);
+    setLoading(true)
     const destAddress = await getLocationName(formData.dest_lat, formData.dest_lng);
     const finalData = {
-      ...formData, source: srcAddress, destination: destAddress
+      ...formData, destination: destAddress
     }
-
-    const { data, error } = await supabase.from("Rides").insert([finalData]).select();
-    if (error) console.error(error);
-    else {
-      const newRide = data[0];
-      addRide(newRide);
-      console.log("Ride Created:", newRide);
-    }
+    addRideMutation.mutate(finalData, {
+      onSuccess: () => {
+        setFormData(initialForm)
+        setOpen(false)
+      },
+      onSettled: () => {
+        setLoading(false)
+      }
+    });
   };
 
   function MapClickHandler() {
     useMapEvents({
       click(e) {
-        if (points.length < 2) {
-          const newPoints = [...points, { lat: e.latlng.lat, lng: e.latlng.lng }];
-          setPoints(newPoints);
-
-          if (newPoints.length === 1) {
-            setFormData((prev) => ({
-              ...prev,
-              source_lat: newPoints[0].lat,
-              source_lng: newPoints[0].lng,
-            }));
-          } else if (newPoints.length === 2) {
-            setFormData((prev) => ({
-              ...prev,
-              dest_lat: newPoints[1].lat,
-              dest_lng: newPoints[1].lng,
-            }));
-            getRoute(newPoints[0], newPoints[1]);
-          }
-        } else {
-          setPoints([{ lat: e.latlng.lat, lng: e.latlng.lng }]);
-          setFormData((prev) => ({
-            ...prev,
-            source_lat: e.latlng.lat,
-            source_lng: e.latlng.lng,
-            dest_lat: 0,
-            dest_lng: 0,
-          }));
-        }
+        const newPoints = { lat: e.latlng.lat, lng: e.latlng.lng };
+        setPoints(newPoints);
+        setFormData((prev) => ({
+          ...prev,
+          dest_lat: newPoints.lat,
+          dest_lng: newPoints.lng,
+        }));
+        console.log(formData);
+        getRoute(newPoints)
       },
     });
     return null;
@@ -146,11 +120,14 @@ function CreateRides() {
           <h1 className="text-2xl font-bold text-gray-800 mb-4 text-center">
             Begin your ride
           </h1>
-          <p className="text-gray-600 text-center mb-6">
+          {/* <p className="text-gray-600 text-center mb-6">
             <span className="font-bold">Your Address: </span> {address}
+          </p> */}
+          <p className="text-gray-600 text-center mb-6 px-8">
+            <span className="font-bold">College Address: </span> {collegeAddres}
           </p>
         </div>
-        <Dialog>
+        <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild className="m-6">
             <Button variant="default" className="bg-green-600 hover:bg-green-700 shadow-xl">
               + Create Ride
@@ -175,24 +152,6 @@ function CreateRides() {
                   onSubmit={handleSubmit}
                   className="grid grid-cols-2 gap-4 md:w-1/2 bg-gray-50 rounded-xl p-5 border border-gray-200 shadow-sm"
                 >
-                  <div>
-                    <label className="block text-gray-700 font-medium mb-1">Seats you need</label>
-                    <Select onValueChange={handleSeatChange} defaultValue={formData.seats.toString()}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select seats" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1</SelectItem>
-                        <SelectItem value="2">2</SelectItem>
-                        <SelectItem value="3">3</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <label className="block text-gray-700 font-medium mb-1">Time</label>
-                    <Input name="time" value={formData.time} onChange={handleChange} />
-                  </div>
 
                   <div>
                     <label className="block text-gray-700 font-medium mb-1">Fare (₹)</label>
@@ -200,35 +159,14 @@ function CreateRides() {
                       name="fare"
                       type="number"
                       value={formData.fare}
-                      onChange={handleChange}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-gray-700 font-medium mb-1">Passengers needed</label>
-                    <Input
-                      name="passengers"
-                      type="number"
-                      value={formData.passengers}
-                      onChange={handleChange}
-                    />
-                  </div>
-
-
-
-                  <div>
-                    <label className="block text-gray-700 font-medium mb-1">Host ID</label>
-                    <Input
-                      name="host_id"
-                      type="number"
-                      value={formData.host_id}
-                      onChange={handleChange}
                     />
                   </div>
 
                   <div className="col-span-2 flex gap-3 mt-4">
-                    <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700 text-white">
-                      Add Ride
+                    <Button type="submit" {...loading && { disabled: true }} className="flex-1 bg-green-600 hover:bg-green-700 text-white">
+                      {
+                        loading ? <Spinner /> : "Add Ride"
+                      }
                     </Button>
                     <DialogClose asChild>
                       <Button variant="outline" className="flex-1">
@@ -241,24 +179,32 @@ function CreateRides() {
                 {/* Right: Map Section */}
                 <div className="flex flex-col lg:w-1/2 w-full h-96 rounded-xl overflow-hidden border shadow-md">
                   <MapContainer
-                    center={[lat, lng]}
+                    center={[Number(collegeLat), Number(collegeLon)]}
                     zoom={13}
                     style={{ height: "100%", width: "100%" }}
                   >
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                     <MapClickHandler />
-                    {route.length > 0 && (
-                      <Polyline positions={route} color="blue" weight={4} opacity={0.7} />
+                    {formData.route.length > 0 && (
+                      <Polyline positions={formData.route} color="blue" weight={4} opacity={0.7} />
                     )}
-                    {points.map((point, idx) => (
-                      <Marker key={idx} position={[point.lat, point.lng]}>
-                        <Popup>
-                          {idx === 0 ? "🟢 Source" : "🔴 Destination"} <br />
-                          Lat: {point.lat.toFixed(5)} <br />
-                          Lng: {point.lng.toFixed(5)}
-                        </Popup>
-                      </Marker>
-                    ))}
+                    <Marker position={[Number(collegeLat), Number(collegeLon)]}>
+                      <Popup>
+                        Source <br />
+                        Address: {collegeAddress}
+                      </Popup>
+                    </Marker>
+                    {
+                      points && (
+                        <Marker position={[points.lat, points.lng]}>
+                          <Popup>
+                            🔴 Destination <br />
+                            Lat: {points.lat.toFixed(5)} <br />
+                            Lng: {points.lng.toFixed(5)}
+                          </Popup>
+                        </Marker>
+                      )
+                    }
                   </MapContainer>
                   <div className="flex justify-around text-gray-600 text-md">
                     <span>Distance: {formData.distance} km</span>

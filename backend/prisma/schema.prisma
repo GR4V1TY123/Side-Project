@@ -13,28 +13,75 @@ datasource db {
   provider = "postgresql"
 }
 
+enum RideStatus {
+  ACTIVE
+  FULL
+  CANCELLED
+  COMPLETED
+}
+
+enum BookingStatus {
+  ACTIVE
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
 model Rides {
-  ride_id     Int     @id @default(autoincrement())
-  created_at  DateTime   @default(now()) @db.Timestamptz
-  seats       Int        @default(0) @db.SmallInt
-  fare        Float      @default(0) @db.Real
+  ride_id    String   @id @default(uuid()) @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz()
+  begin_at   DateTime @default(now()) @db.Timestamptz()
+
+  seats    Int   @default(1) @db.SmallInt
+  fare     Float @default(26)
+  distance Float
+
   source      Json
   destination Json
-  distance    Float      @db.Real
-  status      String     @default("Inactive")
-  passengers  Int
-  host_id     Int
-  source_lat  Float?     @db.Real
-  dest_lat    Float?     @db.Real
-  source_lng  Float?     @db.Real
-  dest_lng    Float?     @db.Real
+  source_lat  Float @default(19.06394795)
+  source_lng  Float @default(72.83579253728743)
+  dest_lat    Float
+  dest_lng    Float
   route       Json?
+
+  status RideStatus @default(ACTIVE)
+
+  // Host
+  host_id String @db.Uuid
+  host    User   @relation("HostRides", fields: [host_id], references: [user_id], onDelete: Cascade)
+
+  bookings Booking[]
+
+  @@index([host_id])
+  @@index([status])
+  @@index([begin_at])
 }
 
 model User {
-  user_id Int @id @default(autoincrement())
-  created_at DateTime @default(now()) @db.Timestamptz()
-  email String @unique
-  name String
-  password String
+  user_id    String    @id @default(uuid()) @db.Uuid
+  created_at DateTime  @default(now()) @db.Timestamptz()
+  email      String    @unique
+  name       String
+  password   String
+  rides      Rides[]   @relation("HostRides")
+  bookings   Booking[]
+
+  @@index([user_id])
+}
+
+model Booking {
+  id        String        @id @default(uuid()) @db.Uuid
+  createdAt DateTime      @default(now()) @db.Timestamptz()
+  user_id   String        @db.Uuid
+  ride_id   String        @db.Uuid
+  fare      Float
+  status    BookingStatus @default(PENDING)
+
+  // Relations
+  user User  @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  ride Rides @relation(fields: [ride_id], references: [ride_id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([ride_id])
 }

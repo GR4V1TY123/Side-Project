@@ -1,13 +1,20 @@
 export async function getLocationName(lat: number, lng: number) {
     try {
         const res = await fetch(
-            `https://us1.locationiq.com/v1/reverse?key=${import.meta.env.VITE_LOCATIONIQ_KEY}&lat=${lat}&lon=${lng}&format=json`
+            `http://localhost:3000/thirdParty/api/v1/geolocate`,
+            {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ lat: Number(lat), lng: Number(lng) })
+            }
         );
         const data = await res.json();
-        return data || "Unknown location";
+        if (res.ok) return data;
+        return "Address not found";
     } catch (err) {
         console.error("Error fetching address:", err);
-        return "Address not found";
+        return "Server error";
     }
 }
 

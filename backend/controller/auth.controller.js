@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken"
 
 const generateJWT = (user_id) => {
     const key = process.env.JWT_KEY
-    const token = jwt.sign({user_id}, key)
+    const token = jwt.sign({ user_id }, key)
     return token;
 }
 
@@ -19,7 +19,7 @@ export const userLogin = async (req, res) => {
         }
 
         // Compare hashed password
-        const checkPassword = await bcrypt.compare(password, user.password,)
+        const checkPassword = await bcrypt.compare(password, user.password)
 
         if (!checkPassword) {
             return res.status(400).json({ message: "Email or password is Incorrect" })
@@ -28,8 +28,8 @@ export const userLogin = async (req, res) => {
         // generate jwt token
         const token = generateJWT(user.user_id)
 
+        res.cookie('token', token, { httpOnly: true, maxAge: 24 * 60 * 60 * 1000 });
         return res.status(200).json({
-            token,
             user: {
                 user_id: user.user_id,
                 email: user.email,
@@ -37,7 +37,8 @@ export const userLogin = async (req, res) => {
             },
             message: "Login Successful!"
         })
-    } catch (e) {
+    } catch (error) {
+        console.log(error);      
         return res.status(500).json({ message: "Internal Server Error" })
     }
 }
@@ -91,8 +92,8 @@ export const userSignUp = async (req, res) => {
         // generate jwt token
         const token = generateJWT(newUser.user_id)
 
-        res.status(201).json({
-            token,
+        res.cookie('token', token, { httpOnly: true, maxAge: 24 * 60 * 60 * 1000 });
+        return res.status(201).json({
             user: {
                 user_id: newUser.user_id,
                 name: newUser.name,
@@ -101,7 +102,15 @@ export const userSignUp = async (req, res) => {
             message: "Sign Up Successful!"
         })
 
-    } catch (e) {
+    } catch (error) {
+        console.log(error);    
         return res.status(500).json({ message: "Internal Server Error" })
     }
+}
+
+export const logout = (req, res) => {
+    res.clearCookie('token')
+    return res.status(200).json({
+        message: "Logout Successful"
+    })
 }

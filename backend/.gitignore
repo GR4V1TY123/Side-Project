@@ -1,7 +1,5 @@
 # ignore envs everywhere
-*.env
 .env
-backend/.env
 
 # ignore prisma generated folder
 generated/prisma/

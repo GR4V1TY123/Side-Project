@@ -7,8 +7,11 @@ interface SmallAddress {
   city: string;
 }
 
-
 interface CoordsStore {
+  collegeAddress: String
+  collegeLat: Number,
+  collegeLon: Number,
+  boundBox: Array<Number>,
   lat: number
   lng: number
   setLat: (lat: number) => void
@@ -25,6 +28,15 @@ interface CoordsStore {
 export const useTrackLocation = create<CoordsStore>()(
   persist(
     (set) => ({
+      collegeAddress: "TSEC College, 37th Road, Linking Road Shopping area, Bandra West, Zone 3, Mumbai, Mumbai Suburban, Maharashtra, 400050, India",
+      collegeLat: 19.06394795,
+      collegeLon: 72.83579253728743,
+      boundBox: [
+        19.0638096,
+        19.0640068,
+        72.8355771,
+        72.8360087
+      ],
       lat: 19.23,
       lng: 72.85,
       address: "Address not available",

@@ -3,12 +3,13 @@ import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader,
 import { Button } from './ui/button'
 import RideDetails from './RideDetails'
 
-export default function RideCard({ ride }: any) {
+export default function RideCard({ ride }: any) { 
+
     return (
         <div>
             <Card className="w-full max-w-xs shadow-md">
                 <CardHeader>
-                    <CardTitle>{ride.source.address.road} → <br />{ride.destination.address.road}</CardTitle>
+                    <CardTitle>{ride.source.display_name?.split(',')[0]} → <br />{ride.destination.display_name?.split(',')[0]}</CardTitle>
                     <CardDescription>
                         <p className='font-bold text-green-700 text-lg '>
                             ₹ {ride.fare}

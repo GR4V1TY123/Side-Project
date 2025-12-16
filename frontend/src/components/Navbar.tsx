@@ -4,7 +4,7 @@ import { useAuthStore } from "../store/useAuthStore";
 
 function Navbar() {
 
-  const isAuthenticated = useAuthStore();
+  const { user } = useAuthStore();
 
   return (
     <nav className="w-full bg-black text-white shadow-md">
@@ -25,14 +25,16 @@ function Navbar() {
         </div>
 
         {/* Right: Buttons */}
-        {!isAuthenticated &&
-          <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4">
+
+          {!user ?
             <Button variant="outline" className="bg-yellow-300 text-black border-gray-500 hover:bg-yellow-600 hover:text-black hover:cursor-pointer">
-              <a href="/signup">Log In</a>
-            </Button>
+              <a href="/login">Log In</a>
+            </Button> :
             <a href="/profile" className="hover:text-yellow-400 transition-colors"><CircleUserRound /></a>
-          </div>
-        }
+          }
+          
+        </div>
       </div>
     </nav>
   );
